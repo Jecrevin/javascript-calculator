@@ -14,7 +14,9 @@
     "plugins": [
         "react"
     ],
-    "rules": {},
+    "rules": {
+        "max-len": "error"
+    },
     "ignorePatterns": [
         "*.config.js"
     ]
