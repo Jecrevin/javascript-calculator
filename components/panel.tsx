@@ -13,18 +13,27 @@ export default function Panel ({
   setInput: React.Dispatch<React.SetStateAction<string>>
   setExp: React.Dispatch<React.SetStateAction<string>>
 }): React.JSX.Element {
+  // a variable shows how many left parenthesis is unpair
   const [unpair, setUnpair] = useState(0)
 
+  /**
+   * Make the calculator work properly when clicking on the `<button>`s
+   * @param e the `MouseEvent` triggered by clicking one `<button>`
+   */
   function handleClick (e: React.MouseEvent): void {
     const button = e.target as HTMLButtonElement
 
+    // change the click button style to make it more vivid
     const pressedStyle = 'shadow-[inset_0_0_5px_rgba(255,255,255,0.7)]'
     button.classList.toggle(pressedStyle)
+    // style the button back later indicates the button resets
     setTimeout(() => {
       button.classList.toggle(pressedStyle)
     }, 100)
 
+    // handle input for calculator according to which button clicked
     if (button.id === 'equals') {
+      // pressing '=' means we want to get the result of expression
       setExp(exp + '=')
       try {
         if (unpair > 0) throw new Error('Err')
@@ -37,19 +46,25 @@ export default function Panel ({
         setInput((error as Error).message)
       }
     } else if (button.id === 'clear') {
+      // pressing 'AC' means we want to reset the whole calculator
       setExp('')
       setInput('0')
       setUnpair(0)
     } else if (button.id === 'delete') {
-      const next = exp.substring(0, exp.length - 1)
-      setExp(next)
-      if (/\d$/.test(next)) setInput(next[next.length - 1])
-      else setInput('0')
+      // pressing '\u2190' means we want to remove the last char we input
+      if (exp.endsWith(')')) setUnpair(unpair + 1)
+      if (exp.endsWith('(')) setUnpair(unpair - 1)
+      setExp(exp.substring(0, exp.length - 1))
+      const nextInput = input.substring(0, input.length - 1)
+      setInput(nextInput === '' ? '0' : nextInput)
     } else {
+      // pressing any other button will input a number or an operator
+      // if we just get a result, we need to go on a new expression
       if (exp.endsWith('=')) setExp(exp => '')
       switch (button.id) {
         case 'par-left':
           setUnpair(unpair + 1)
+          // prevent left parenthesis directly follows numbers
           if (/[0-9)]$/.test(exp)) {
             setExp(exp => exp + '\u00d7(')
           } else setExp(exp => exp + '(')
@@ -57,6 +72,7 @@ export default function Panel ({
 
         case 'par-right':
           if (unpair > 0) {
+            // prevent empty parenthesis
             if (exp.endsWith('(')) setExp(exp => exp + '0')
             setExp(exp => exp + button.innerText)
             setUnpair(unpair - 1)
@@ -73,20 +89,27 @@ export default function Panel ({
         case '7':
         case '8':
         case '9':
-          if (/\d$/.test(exp)) setInput(input + button.innerText)
+        case 'dot':
+          if (/[\d.]$/.test(exp)) setInput(input + button.innerText)
           else setInput(button.innerText)
+          // prevent numbers directly follows right parenthesis
           if (exp.endsWith(')')) setExp(exp => exp + '\u00d7')
           setExp(exp => exp + button.innerText)
           break
 
         default:
+          // a result got in the previous step, inputting an operator will apply
+          // to it
           if (exp.endsWith('=')) setExp(exp => exp + input)
+          // last input is an operator, inputting a new one will override it
           if (/[^0-9=]$/.test(exp)) {
             setExp(exp => exp.substring(0, exp.length - 1))
           }
           setExp(exp => exp + button.innerText)
       }
     }
+    // prevent focus on the clicked button
+    button.blur()
   }
 
   return (
@@ -217,6 +240,7 @@ function findPairedPar (exp: string, leftIndex: number): number {
 
       case ')':
         if (unpair === 0) return i
+        unpair--
     }
   }
   return -1

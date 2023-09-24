@@ -4,44 +4,27 @@ import Panel from '@/components/panel'
 import React, { useEffect, useState } from 'react'
 
 export default function Home (): React.JSX.Element {
+  // a `string` represents mathmaic expression
   const [expression, setExpression] = useState('')
+  // a `string` represents current input number or the result of expression
   const [input, setInput] = useState('0')
 
+  /**
+   * Make the calculator work properly when pressing down keyboard.
+   * @param e the Event
+   */
   function handleKeyDown (e: KeyboardEvent): void {
     console.log('keydown')
     const buttons = document.querySelectorAll('button')
     buttons.forEach((button) => {
-      if (button.innerText === e.key) {
-        button.click()
-        return
-      }
-      switch (e.key) {
-        case '*':
-          document.getElementById('times')?.click()
-          break
-
-        case '/':
-          document.getElementById('divide')?.click()
-          break
-
-        case 'Delete':
-        case 'Backspace':
-          document.getElementById('delete')?.click()
-          break
-
-        case ' ':
-        case 'Enter':
-          document.getElementById('equals')?.click()
-          break
-
-        case 'Escape':
-          document.getElementById('clear')?.click()
-      }
+      if (button.id === parseButtonId(e.key)) button.click()
     })
   }
 
+  // add the above handler to `window` to ensure it works
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)
+    // remove the handler when deconstruct the whole page
     return () => { window.removeEventListener('keydown', handleKeyDown) }
   }, [])
 
@@ -60,4 +43,34 @@ export default function Home (): React.JSX.Element {
       setExp={setExpression} />
     </main>
   )
+}
+
+// a map for `handleKeyDown` to convert the `e.key` to corresponding `<button>`
+// id
+const keyMap = new Map([
+  ['Escape', 'clear'],
+  ['Backspace', 'delete'],
+  ['Delete', 'delete'],
+  ['Enter', 'equals'],
+  [' ', 'equals'],
+  ['=', 'equals'],
+  ['(', 'par-left'],
+  [')', 'par-right'],
+  ['+', 'plus'],
+  ['-', 'minus'],
+  ['*', 'times'],
+  ['/', 'divide'],
+  ['^', 'power'],
+  ['.', 'dot']
+])
+
+/**
+ * Parse the pressed key's `e.key` to `<button>`'s id
+ * @param key the `KeyboardEvent.key`
+ * @returns the corresponding `<button>` id of pressed key
+ */
+function parseButtonId (key: string): string | undefined {
+  if (/^\d$/.test(key)) return key
+  const id = keyMap.get(key)
+  return id
 }
