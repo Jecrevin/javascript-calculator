@@ -1,66 +1,63 @@
 'use client'
 
 import Panel from '@/components/panel'
-import React, { useReducer, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 export default function Home (): React.JSX.Element {
-  const [expression, dispatch] = useReducer(reducer, '')
+  const [expression, setExpression] = useState('')
   const [input, setInput] = useState('0')
 
+  function handleKeyDown (e: KeyboardEvent): void {
+    console.log('keydown')
+    const buttons = document.querySelectorAll('button')
+    buttons.forEach((button) => {
+      if (button.innerText === e.key) {
+        button.click()
+        return
+      }
+      switch (e.key) {
+        case '*':
+          document.getElementById('times')?.click()
+          break
+
+        case '/':
+          document.getElementById('divide')?.click()
+          break
+
+        case 'Delete':
+        case 'Backspace':
+          document.getElementById('delete')?.click()
+          break
+
+        case ' ':
+        case 'Enter':
+          document.getElementById('equals')?.click()
+          break
+
+        case 'Escape':
+          document.getElementById('clear')?.click()
+      }
+    })
+  }
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => { window.removeEventListener('keydown', handleKeyDown) }
+  }, [])
+
   return (
-    <main id="calculator" className='w-2/5 border-gray-400 border-2
-    bg-black'>
-      <div id="expression" className='px-2 py-4 w-full text-right text-xl'>
+    <main id="calculator" className='w-[500px] border-gray-500 border-4
+    rounded-sm bg-zinc-300'>
+      <div id="expression" className='min-h-[2rem] px-2 mt-2 w-full text-right
+      text-xl text-black break-words'>
         {expression}
       </div>
-      <div id="input" className='px-2 py-4 w-full text-right text-3xl'>
+      <div id="input" className='px-2 py-4 w-full text-right text-3xl
+      text-black'>
         {input}
       </div>
-      <Panel setInput={setInput} expDispatch={dispatch} />
+      <Panel exp={expression} input={input} setInput={setInput}
+      setExp={setExpression} />
     </main>
   )
-}
-
-function calculate (exp: string): number {
-  if (/^\d*[.]?\d+$/.test(exp)) return parseFloat(exp)
-  if (exp[0] === '(') {
-    const right = exp.lastIndexOf(')')
-    return calculate(
-      calculate(exp.substring(0, right)).toString() + exp.substring(right + 1)
-    )
-  }
-  for (let i = 0; i < exp.length; i++) {
-    switch (exp[i]) {
-      case '+':
-        return calculate(exp.substring(0, i)) + calculate(exp.substring(i + 1))
-      case '-':
-        return calculate(exp.substring(0, i)) - calculate(exp.substring(i + 1))
-      case '*':
-        return calculate(exp.substring(0, i)) * calculate(exp.substring(i + 1))
-      case '/':
-        return calculate(exp.substring(0, i)) / calculate(exp.substring(i + 1))
-      case '^':
-        return Math.pow(
-          calculate(exp.substring(0, i)), calculate(exp.substring(i + 1))
-        )
-    }
-  }
-  throw new Error('Err')
-}
-
-function reducer (
-  state: string,
-  action: {
-    type: 'input' | 'calculate' | 'clear'
-    input?: string
-  }
-): string {
-  if (action.type === 'input') return state + action.input
-  if (action.type === 'calculate') {
-    return (/^[+-]/.test(state)
-      ? calculate('0' + state)
-      : calculate(state)).toString()
-  }
-  if (action.type === 'clear') return ''
-  throw new Error(`Unknown action: ${action.type as string}`)
 }

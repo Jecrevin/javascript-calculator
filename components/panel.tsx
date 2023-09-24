@@ -1,78 +1,223 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 
 export default function Panel ({
+  exp,
+  input,
   setInput,
-  expDispatch
+  setExp
 }: {
+  exp: string
+  input: string
   setInput: React.Dispatch<React.SetStateAction<string>>
-  expDispatch: React.Dispatch<{
-    type: 'input' | 'calculate' | 'clear'
-    input?: string
-  }>
+  setExp: React.Dispatch<React.SetStateAction<string>>
 }): React.JSX.Element {
+  const [unpair, setUnpair] = useState(0)
+
   function handleClick (e: React.MouseEvent): void {
-    const clickedButton = e.target as HTMLButtonElement
-    if (/^[0-9+\-^.]$/.test(clickedButton.innerText)) {
-      setInput(clickedButton.innerText)
-      expDispatch({ type: 'input', input: clickedButton.innerText })
+    const button = e.target as HTMLButtonElement
+
+    const pressedStyle = 'shadow-[inset_0_0_5px_rgba(255,255,255,0.7)]'
+    button.classList.toggle(pressedStyle)
+    setTimeout(() => {
+      button.classList.toggle(pressedStyle)
+    }, 100)
+
+    if (button.id === 'equals') {
+      setExp(exp + '=')
+      try {
+        if (unpair > 0) throw new Error('Err')
+        setInput(calculate(exp).toString())
+      } catch (error) {
+        if (exp.endsWith('=')) {
+          setExp(input + '=')
+          return
+        }
+        setInput((error as Error).message)
+      }
+    } else if (button.id === 'clear') {
+      setExp('')
+      setInput('0')
+      setUnpair(0)
+    } else if (button.id === 'delete') {
+      const next = exp.substring(0, exp.length - 1)
+      setExp(next)
+      if (/\d$/.test(next)) setInput(next[next.length - 1])
+      else setInput('0')
     } else {
-      switch (clickedButton.id) {
-        case 'times':
-          setInput(clickedButton.innerText)
-          expDispatch({ type: 'input', input: '*' })
+      if (exp.endsWith('=')) setExp(exp => '')
+      switch (button.id) {
+        case 'par-left':
+          setUnpair(unpair + 1)
+          if (/[0-9)]$/.test(exp)) {
+            setExp(exp => exp + '\u00d7(')
+          } else setExp(exp => exp + '(')
           break
-        case 'divide':
-          setInput(clickedButton.innerText)
-          expDispatch({ type: 'input', input: '/' })
+
+        case 'par-right':
+          if (unpair > 0) {
+            if (exp.endsWith('(')) setExp(exp => exp + '0')
+            setExp(exp => exp + button.innerText)
+            setUnpair(unpair - 1)
+          }
           break
-        case 'clear':
-          setInput('0')
-          expDispatch({ type: 'clear' })
+
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+          if (/\d$/.test(exp)) setInput(input + button.innerText)
+          else setInput(button.innerText)
+          if (exp.endsWith(')')) setExp(exp => exp + '\u00d7')
+          setExp(exp => exp + button.innerText)
           break
-        case 'equals':
-          expDispatch({ type: 'calculate' })
-          break
+
         default:
-          throw new Error('Unknown button input to this calculator!')
+          if (exp.endsWith('=')) setExp(exp => exp + input)
+          if (/[^0-9=]$/.test(exp)) {
+            setExp(exp => exp.substring(0, exp.length - 1))
+          }
+          setExp(exp => exp + button.innerText)
       }
     }
   }
 
   return (
-    <div id="panel" className='m-2 h-[450px] grid grid-cols-4 grid-rows-5
+    <div id="panel" className='m-2 h-[450px] grid grid-rows-5 grid-flow-col
     gap-1'>
-      <button className='col-span-2 bg-rose-700' id='clear'
-      onClick={handleClick}>AC</button>
-      <button className='bg-stone-500' id='times'
-      onClick={handleClick}>&times;</button>
-      <button className='bg-stone-500' id='divide'
-      onClick={handleClick}>&divide;</button>
-      <button className='bg-neutral-600' id='7' onClick={handleClick}>7</button>
-      <button className='bg-neutral-600' id='8' onClick={handleClick}>8</button>
-      <button className='bg-neutral-600' id='9' onClick={handleClick}>9</button>
-      <button className='bg-stone-500' id='power' onClick={handleClick}>
-        ^
-      </button>
-      <button className='bg-neutral-600' id='4' onClick={handleClick}>4</button>
-      <button className='bg-neutral-600' id='5' onClick={handleClick}>5</button>
-      <button className='bg-neutral-600' id='6' onClick={handleClick}>6</button>
-      <button className='bg-stone-500' id='minus' onClick={handleClick}>
-        -
-      </button>
-      <button className='bg-neutral-600' id='1' onClick={handleClick}>1</button>
-      <button className='bg-neutral-600' id='2' onClick={handleClick}>2</button>
-      <button className='bg-neutral-600' id='3' onClick={handleClick}>3</button>
-      <button className='bg-stone-500' id='plus'onClick={handleClick}>+</button>
-      <button className='col-span-2 bg-neutral-600' id='0'
+      <button className='bg-rose-700 hover:bg-rose-600 transition-colors'
+      id='clear' onClick={handleClick}>AC</button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='7' onClick={handleClick}>7</button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='4' onClick={handleClick}>4</button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='1' onClick={handleClick}>1</button>
+      <button className='bg-neutral-600 col-span-2 hover:bg-neutral-500
+      transition-colors' id='0'
       onClick={handleClick}>0</button>
-      <button className='bg-neutral-600' id='dot' onClick={handleClick}>
+      <button className='relative bg-stone-500 hover:bg-stone-400
+      transition-colors' id='par-left' onClick={handleClick}>
+        &#40;
+        { unpair > 0
+          ? <div className='absolute bottom-1 right-1 text-sm
+          pointer-events-none'>{unpair}</div>
+          : null }
+      </button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='8' onClick={handleClick}>8</button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='5' onClick={handleClick}>5</button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='2' onClick={handleClick}>2</button>
+      <button className='bg-stone-500 hover:bg-stone-400
+      transition-colors' id='par-right' onClick={handleClick}>
+        &#41;
+      </button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='9' onClick={handleClick}>9</button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='6' onClick={handleClick}>6</button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='3' onClick={handleClick}>3</button>
+      <button className='bg-neutral-600 hover:bg-neutral-500
+      transition-colors' id='dot' onClick={handleClick}>
         .
       </button>
-      <button className='bg-sky-600' id='equals' onClick={handleClick}>
-        =
+      <button className='bg-stone-500 hover:bg-stone-400 transition-colors'
+      id='divide' onClick={handleClick}>&divide;</button>
+      <button className='bg-stone-500 hover:bg-stone-400 transition-colors'
+      id='times' onClick={handleClick}>&times;</button>
+      <button className='bg-stone-500 hover:bg-stone-400 transition-colors'
+      id='minus' onClick={handleClick}>
+        -
       </button>
+      <button className='bg-stone-500 hover:bg-stone-400 transition-colors
+      row-span-2' id='plus' onClick={handleClick}>+</button>
+      <button className='bg-red-600 hover:bg-red-500 transition-colors'
+      id='delete' onClick={handleClick}>
+        {'\u2190'}
+      </button>
+      <button className='bg-stone-500 hover:bg-stone-400 transition-colors'
+      id='power' onClick={handleClick}>
+        ^
+      </button>
+      <button className='bg-sky-600 hover:bg-sky-500 transition-colors
+      row-span-3' id='equals' onClick={handleClick}>=</button>
     </div>
   )
+}
+
+/**
+ * Get the result of an `string` which is a mathmatic expression.
+ * @param exp a mathmatic expression to be calculated
+ * @returns a number which represents the result of `exp`
+ */
+function calculate (exp: string): number {
+  if (/^\d*[.]?\d+$/.test(exp)) return parseFloat(exp)
+  if (/^[+-]/.test(exp)) exp = '0' + exp
+  const leftPar = exp.indexOf('(')
+  if (leftPar !== -1) {
+    const rightPar = findPairedPar(exp, leftPar)
+    return calculate(
+      exp.substring(0, leftPar) +
+      calculate(exp.substring(leftPar + 1, rightPar).toString() +
+      exp.substring(rightPar + 1))
+    )
+  }
+  const processPlus = exp.split('+')
+  if (processPlus.length > 1) {
+    return processPlus.map(subExp => calculate(subExp))
+      .reduce((sum, num) => sum + num)
+  }
+  const processMinus = exp.split('-')
+  if (processMinus.length > 1) {
+    return processMinus.map(subExp => calculate(subExp))
+      .reduce((ans, num) => ans - num)
+  }
+  const processTimes = exp.split('\u00d7')
+  if (processTimes.length > 1) {
+    return processTimes.map(subExp => calculate(subExp))
+      .reduce((ans, num) => ans * num)
+  }
+  const processDivide = exp.split('\u00f7')
+  if (processDivide.length > 1) {
+    return processDivide.map(subExp => calculate(subExp))
+      .reduce((ans, num) => ans / num)
+  }
+  const processPower = exp.split('^')
+  if (processPower.length > 1) {
+    return processPower.map(subExp => calculate(subExp))
+      .reduce((ans, num) => Math.pow(ans, num))
+  }
+  throw new Error('Err')
+}
+
+/**
+ * An function to find the corresponding close parenthesis.
+ * @param exp a mathmatic expression
+ * @param leftIndex the index of open parenthesis in the `exp`
+ * @returns the index of corresponding close parenthesis of the open one on
+ * `leftIndex`
+ */
+function findPairedPar (exp: string, leftIndex: number): number {
+  let unpair = 0
+  for (let i = leftIndex + 1; i < exp.length; i++) {
+    switch (exp[i]) {
+      case '(':
+        unpair++
+        break
+
+      case ')':
+        if (unpair === 0) return i
+    }
+  }
+  return -1
 }

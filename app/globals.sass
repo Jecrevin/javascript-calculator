@@ -3,9 +3,11 @@
 @tailwind utilities
 
 :root
-  --background-color: #a8a
+  --background-start-color: #444
+  --background-end-color: #333
   --foreground-color: #eee
+  --hover-color: #ddd
 
 body
-  background-color: var(--background-color)
+  background: linear-gradient(90deg, var(--background-start-color), var(--background-end-color))
   color: var(--foreground-color)
